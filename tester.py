@@ -65,6 +65,10 @@ class Profile(Frame):
     def __init__(self, parent, controller):
         Frame.__init__(self, parent)
 
+        name_text = StringVar()
+        name_label = Label(self, text='USER NULL')
+        name_label.grid(row=3, column=0, sticky=E)
+
         toolbar(self, controller)
         
         
@@ -76,6 +80,78 @@ class DailyActivity(Frame):
         Frame.__init__(self, parent)
 
         toolbar(self, controller)
+        
+
+
+# third window frame page2
+class AddWorkout(Frame):
+    def __init__(self, parent, controller):
+        Frame.__init__(self, parent)
+
+        var_sessions_length = IntVar()
+        var_sessions_index = IntVar()
+        var_sessions_index.set(0)
+        var_sessions_id = IntVar()
+        var_sessions_trained = StringVar()
+        var_sessions_burnt = IntVar()
+        var_sessions_reps = IntVar()
+        var_sessions_start = StringVar()
+        var_sessions_end = StringVar()
+        def nav_left():
+            print("l")
+        def nav_right():
+            print("r")
+
+        left_btn = Button(self, text='<', width=3, command=nav_left)
+        left_btn.grid(row=3, column=1)
+
+        # Right Arrow
+        right_btn = Button(self, text='>', width=3, command=nav_right)
+        right_btn.grid(row=3, column=2)
+
+        # ID
+        id_text = StringVar()
+        id_label = Label(self, text='ID')
+        id_label.grid(row=0, column=0, sticky=E)
+        id_entry = Entry(self, textvariable=var_sessions_id)
+        id_entry.grid(row=0, column=1, sticky=E)
+        
+        # MusclesTrained
+        trained_text = StringVar()
+        trained_label = Label(self, text='Muscles Trained')
+        trained_label.grid(row=0, column=2, sticky=E)
+        trained_entry = Entry(self, textvariable=var_sessions_trained)
+        trained_entry.grid(row=0, column=3, sticky=E)
+        
+        # CaloriesBurnt
+        burnt_text = StringVar()
+        burnt_label = Label(self, text='Calories Burnt')
+        burnt_label.grid(row=1, column=0, sticky=E)
+        burnt_entry = Entry(self, textvariable=var_sessions_burnt)
+        burnt_entry.grid(row=1, column=1, sticky=E)
+        
+        # Reps
+        reps_text = StringVar()
+        reps_label = Label(self, text='Reps')
+        reps_label.grid(row=1, column=2, sticky=E)
+        reps_entry = Entry(self, textvariable=var_sessions_reps)
+        reps_entry.grid(row=1, column=3, sticky=E)
+        
+        # StartTime
+        start_text = StringVar()
+        start_label = Label(self, text='StartTime')
+        start_label.grid(row=2, column=0, sticky=E)
+        start_entry = Entry(self, textvariable=var_sessions_start)
+        start_entry.grid(row=2, column=1, sticky=E)
+        
+        # EndTime
+        end_text = StringVar()
+        end_label = Label(self, text='EndTime')
+        end_label.grid(row=2, column=2, sticky=E)
+        end_entry = Entry(self, textvariable=var_sessions_end)
+        end_entry.grid(row=2, column=3, sticky=E)
+
+        
         add_btn = Button(self, text='Add Session', width=12)
         add_btn.grid(row=4, column=0)
 
@@ -87,13 +163,6 @@ class DailyActivity(Frame):
 
         clear_btn = Button(self, text='Clear Input', width=12)
         clear_btn.grid(row=4, column=3)
-
-
-# third window frame page2
-class AddWorkout(Frame):
-    def __init__(self, parent, controller):
-        Frame.__init__(self, parent)
-
         toolbar(self, controller)
 
 
@@ -107,11 +176,11 @@ class Calender(Frame):
 class Settings(Frame):
     def __init__(self, parent, controller):
         Frame.__init__(self, parent)
-
+        Reminders = Checkbutton(self)
+        Reminders.grid(row=4, column=3)
         toolbar(self, controller)
 
 
 # Driver Code
 app = tkinterApp()
 app.mainloop()
-
