@@ -119,7 +119,7 @@ add_btn.grid(row=4, column=0)
 remove_btn = Button(text='Remove Session', width=12, command=remove_session)
 remove_btn.grid(row=4, column=1)
 
-update_btn = Button(text='Update Router', width=12, command=update_session)
+update_btn = Button(text='Update Session', width=12, command=update_session)
 update_btn.grid(row=4, column=2)
 
 clear_btn = Button(text='Clear Input', width=12, command=clear_session)
@@ -159,7 +159,6 @@ def delete(i):
     else:
         return
     conn.commit()
-
 
 def update(WorkoutID, trained, burnt, reps, start, end):
     conn = sqlite3.connect('library.db')
