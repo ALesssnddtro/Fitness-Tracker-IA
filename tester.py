@@ -1,17 +1,33 @@
 from tkinter import *
 from tkinter.ttk import Treeview
 import sqlite3
+from datetime import datetime
+from datetime import timedelta
 
 LARGEFONT = ("Verdana", 35)
 firstStartUp = True
 Bwidth = 12
 Fsize = 11
 
-#def start():
-    #conn = sqlite3.connect('library.db')
-    #c = conn.cursor()
-    #print(c.execute("EXISTS(SELECT 1 FROM UserZ))
+def ReminderCheck():
+    conn = sqlite3.connect('library.db')
+    c = conn.cursor()
+    for row in c.execute('SELECT * FROM Sessions'):
 
+        duration = row[4]
+        v_date = row[2].split("-")
+        v_time = row[3].split(":")
+        minStart = datetime.today()
+
+        maxStart = minStart + timedelta(minutes=duration)
+
+        print(v_time[1], minStart.minute)
+
+        if v_date[0] == minStart.year and v_date[1] == minStart.month and v_date[2] == minStart.day:
+            if ( v_time[0] >= minStart.strftime("%I") and v_time[1] >= minStart.minute ) and ( v_time[0] < maxStart.strftime("%I") and v_time[1] < maxStart.minute) :
+                print("day is the day")
+
+ReminderCheck()
 
 class tkinterApp(Tk):
 
@@ -208,20 +224,19 @@ def new_window(rows):
     btn_button = Button(pop_up, text="close", command=lambda:pop_up.destroy())
     btn_button.place(relx=0.5, rely=0.88, anchor=N)
 
-    col = ['test1', 'test2', 'test3', 'test4', 'test5', 'test6', 'test7', 'test8', 'test9', 'test10', 'test11']
+    col = ['test1', 'test2', 'test3', 'test4', 'test5', 'test6', 'test7', 'test8', 'test9', 'test10']
     router_tree_view = Treeview(pop_up, columns=col, show="headings")
 
     router_tree_view.heading('#1', text='SessionID')
     router_tree_view.heading('#2', text='StartDate')
-    router_tree_view.heading('#3', text='EndDate')
-    router_tree_view.heading('#4', text='StartTime')
-    router_tree_view.heading('#5', text='EndTime')
-    router_tree_view.heading('#6', text='Sets')
-    router_tree_view.heading('#7', text='Reps')
-    router_tree_view.heading('#8', text='Place')
-    router_tree_view.heading('#9', text='IsPlanned')
-    router_tree_view.heading('#10', text='ExerciseName')
-    router_tree_view.heading('#11', text='Daytype')
+    router_tree_view.heading('#3', text='StartTime')
+    router_tree_view.heading('#4', text='Duration')
+    router_tree_view.heading('#5', text='Sets')
+    router_tree_view.heading('#6', text='Reps')
+    router_tree_view.heading('#7', text='Place')
+    router_tree_view.heading('#8', text='IsPlanned')
+    router_tree_view.heading('#9', text='ExerciseName')
+    router_tree_view.heading('#10', text='Daytype')
 
     #Sessions.SessionID, Sessions.StartTime, Sessions.EndTime, SessionDetails.Sets, SessionDetails.Reps, SessionDetails.Sets, SessionDetails.Place, SessionDetails.IsPlanned, Exercises.ExerciseName
 
@@ -235,7 +250,6 @@ def new_window(rows):
     router_tree_view.column("#8", width=50)
     router_tree_view.column("#9", width=70)
     router_tree_view.column("#10", width=90)
-    router_tree_view.column("#11", width=70)
 
 
     router_tree_view.place(relx=0.5, rely=0.05, anchor=N)
@@ -250,7 +264,7 @@ def new_window(rows):
     for i in range(len(rows)):
         router_tree_view.insert('', 'end', values=rows[i])
 
-def populatelists(ts, te, ds, de, et, p, dt, pl):
+def populatelists(ts, ds, du, et, p, dt, pl):
 
     true_pl = "True"
     if pl == 1:
@@ -258,7 +272,7 @@ def populatelists(ts, te, ds, de, et, p, dt, pl):
     else:
         true_pl = "False"
 
-    query = "SELECT Sessions.SessionID, Sessions.StartDate, Sessions.EndDate, Sessions.StartTime, Sessions.EndTime, SessionDetails.Sets, SessionDetails.Reps, SessionDetails.Place, SessionDetails.IsPlanned, Exercises.ExerciseName, Exercises.Type FROM Sessions INNER JOIN SessionDetails ON Sessions.SessionID = SessionDetails.SessionID INNER JOIN Exercises ON SessionDetails.ExerciseID = Exercises.ExerciseID WHERE IsPlanned = "  + "'" + true_pl + "'"
+    query = "SELECT Sessions.SessionID, Sessions.StartDate, Sessions.StartTime, Sessions.Duration, SessionDetails.Sets, SessionDetails.Reps, SessionDetails.Place, SessionDetails.IsPlanned, Exercises.ExerciseName, Exercises.Type FROM Sessions INNER JOIN SessionDetails ON Sessions.SessionID = SessionDetails.SessionID INNER JOIN Exercises ON SessionDetails.ExerciseID = Exercises.ExerciseID WHERE IsPlanned = "  + "'" + true_pl + "'"
     #print(query)
 
     #---------------------------------------------------
@@ -266,16 +280,16 @@ def populatelists(ts, te, ds, de, et, p, dt, pl):
     if (ts != "hh:mm:ss" and ts != "NULL"):
         query = query + " AND StartTime = " + "'" + ts + "'"
 
-    if (te != "hh:mm:ss" and te != "NULL"):
-        query = query + " AND EndTime = " + "'" + te + "'"
+    if (ts != "hh:mm:ss" and ts != "NULL"):
+        query = query + " AND EndTime = " + "'" + du + "'"
 
     #----------------------------------------------------
 
     if (ds != "yyyy-mm-dd" and ds != "NULL"):
         query = query + " AND StartDate = " + "'" + ds + "'"
 
-    if (de != "yyyy-mm-dd" and de != "NULL"):
-        query = query + " AND EndDate = " + "'" + de + "'"
+    if (du != "yyyy-mm-dd" and du != "NULL"):
+        query = query + " AND EndDate = " + "'" + du + "'"
 
     #----------------------------------------------------
 
@@ -304,16 +318,12 @@ class Calender(Frame):
 
         
         var_date_start = StringVar()
-        var_date_end = StringVar()
+        var_duration = StringVar()
 
         var_time_start = StringVar()
-        var_time_end = StringVar()
-        
-        var_session_time = StringVar()
 
         var_exercise_type = StringVar()
-        
-        var_intensity = StringVar()
+
         var_day_type = StringVar()
 
         var_place = StringVar()
@@ -326,10 +336,9 @@ class Calender(Frame):
         var_sets = IntVar()
 
         var_date_start.set("yyyy-mm-dd")
-        var_date_end.set("yyyy-mm-dd")
 
         var_time_start.set("hh:mm:ss")
-        var_time_end.set("hh:mm:ss")
+        var_duration.set("duration")
 
         var_exercise_type.set("Exercise Type")
 
@@ -356,7 +365,7 @@ class Calender(Frame):
             if row[2] not in Days:
                 Days.append(row[2])
 
-        btn_search = Button(self, text="search", command=lambda: populatelists(var_time_start.get(), var_time_end.get(), var_date_start.get(), var_date_end.get(), var_exercise_type.get(), var_place.get(), var_day_type.get(), var_is_Planned.get()))
+        btn_search = Button(self, text="search", command=lambda: populatelists(var_time_start.get(), var_date_start.get(), var_duration.get(), var_exercise_type.get(), var_place.get(), var_day_type.get(), var_is_Planned.get()))
         btn_search.place(relx=0.5, rely=0.7, anchor=N)
 
 
@@ -366,13 +375,6 @@ class Calender(Frame):
         #EdateStart.grid(row=2, column=1)
         lb_dateStart.place(relx=0.35, rely=0.22, anchor=N)
         en_dateStart.place(relx=0.5, rely=0.22, anchor=N)
-
-        lb_dateEnd = Label(self, text = "EndDate")
-        en_dateEnd = Entry(self, textvariable=var_date_end, bd = 5)
-        #dateEnd.grid(row=2, column=3)
-        #EdateEnd.grid(row=2, column=4)
-        lb_dateEnd.place(relx=0.35, rely=0.3, anchor=N)
-        en_dateEnd.place(relx=0.5, rely=0.3, anchor=N)
 
         #------------------------------------------------
 
@@ -384,7 +386,7 @@ class Calender(Frame):
         en_timeStart.place(relx=0.5, rely=0.06, anchor=N)
 
         lb_timeEnd = Label(self, text = "EndTime")
-        en_timeEnd = Entry(self, textvariable=var_time_end, bd = 5)
+        en_timeEnd = Entry(self, textvariable=var_duration, bd = 5)
         #dateEnd.grid(row=2, column=3)
         #EdateEnd.grid(row=2, column=4)
         lb_timeEnd.place(relx=0.35, rely=0.14, anchor=N)
@@ -428,9 +430,11 @@ class Settings(Frame):
         Frame.__init__(self, parent)
         self.configure(bg="#B3B3B3")
 
+        vars_remind_user = IntVar(0)
+
         RemindersLabel = Label(self, text='RemindUser')
         #RemindersLabel.grid(row=4, column=2)
-        Reminders = Checkbutton(self, text = "RemindUser", offvalue = 1)
+        Reminders = Checkbutton(self, text="RemindUser", variable=vars_remind_user)
         Reminders.grid(row=4, column=2)
 
 

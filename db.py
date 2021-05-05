@@ -18,8 +18,7 @@ c.execute('''CREATE TABLE Sessions
              UserID time,
              StartDate date,
              StartTime time,
-             EndDate date,
-             EndTime int,
+             Duration int,
              FOREIGN KEY (UserID) REFERENCES Users(UserID))''')
 
 #text 0 is false 1 is true
@@ -52,20 +51,20 @@ c.execute('''INSERT INTO Users(UserID, LastName, FirstName, DoB, Weight, Height,
 VALUES (3, 'Buchanan', 'Steven', '2006-11-31', 78, 141, 'Male')''')
 
 #sessions
-c.execute('''INSERT INTO Sessions(SessionID, UserID, StartDate, StartTime, EndDate, EndTime)
-VALUES (1, 1, "2018-05-26", "06:45:00", "2018-05-26", "07:45:00")''')
-c.execute('''INSERT INTO Sessions(SessionID, UserID, StartDate, StartTime, EndDate, EndTime)
-VALUES (2, 1, "2016-11-11", "02:15:00", "2016-11-11", "02:45:00")''')
+c.execute('''INSERT INTO Sessions(SessionID, UserID, StartDate, StartTime, Duration)
+VALUES (1, 1, "2018-05-26", "06:55:00", 5)''')
+c.execute('''INSERT INTO Sessions(SessionID, UserID, StartDate, StartTime, Duration)
+VALUES (2, 1, "2016-11-11", "02:45:00", 15)''')
 
-c.execute('''INSERT INTO Sessions(SessionID, UserID, StartDate, StartTime, EndDate, EndTime)
-VALUES (3, 2, "2016-11-11", "02:15:00", "2016-11-11", "02:45:00")''')
-c.execute('''INSERT INTO Sessions(SessionID, UserID, StartDate, StartTime, EndDate, EndTime)
-VALUES (4, 2, "2016-11-11", "02:15:00", "2016-11-11", "02:45:00")''')
+c.execute('''INSERT INTO Sessions(SessionID, UserID, StartDate, StartTime, Duration)
+VALUES (3, 2, "2016-11-11", "02:35:00", 25)''')
+c.execute('''INSERT INTO Sessions(SessionID, UserID, StartDate, StartTime, Duration)
+VALUES (4, 2, "2016-11-11", "04:25:00", 35)''')
 
-c.execute('''INSERT INTO Sessions(SessionID, UserID, StartDate, StartTime, EndDate, EndTime)
-VALUES (5, 3, "2014-07-30", "11:55:00", "2014-07-30", "02:55:00")''')
-c.execute('''INSERT INTO Sessions(SessionID, UserID, StartDate, StartTime, EndDate, EndTime)
-VALUES (6, 3, "2016-11-11", "02:15:00", "2016-11-11", "02:45:00")''')
+c.execute('''INSERT INTO Sessions(SessionID, UserID, StartDate, StartTime, Duration)
+VALUES (5, 3, "2014-07-30", "11:15:00", 45)''')
+c.execute('''INSERT INTO Sessions(SessionID, UserID, StartDate, StartTime, Duration)
+VALUES (6, 3, "2021-05-05", "03:55:00", 65)''')
 
 #exercises
 c.execute('''INSERT INTO Exercises(ExerciseID, ExerciseName, Type)
@@ -124,7 +123,7 @@ for row in c.execute('SELECT * FROM Exercises'):
 
         
 
-test1 = ("SELECT Sessions.SessionID, Sessions.StartTime, Sessions.EndTime, SessionDetails.Sets, SessionDetails.Reps, SessionDetails.Sets, SessionDetails.Place, SessionDetails.IsPlanned, Exercises.ExerciseName FROM Sessions INNER JOIN SessionDetails ON Sessions.SessionID = SessionDetails.SessionID INNER JOIN Exercises ON SessionDetails.ExerciseID = Exercises.ExerciseID")
+test1 = ("SELECT Sessions.SessionID, Sessions.StartTime, SessionDetails.Sets, SessionDetails.Reps, SessionDetails.Sets, SessionDetails.Place, SessionDetails.IsPlanned, Exercises.ExerciseName FROM Sessions INNER JOIN SessionDetails ON Sessions.SessionID = SessionDetails.SessionID INNER JOIN Exercises ON SessionDetails.ExerciseID = Exercises.ExerciseID")
 
 c.execute(test1)
 rows = c.fetchall()
