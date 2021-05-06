@@ -1,5 +1,7 @@
 from tkinter import *
+from tkcalendar import *
 from tkinter.ttk import Treeview
+import tkcalendar
 import sqlite3
 from datetime import datetime
 from datetime import timedelta
@@ -58,7 +60,7 @@ class tkinterApp(Tk):
 
         self.frames = {}
 
-        for F in (NewUser, Profile, DailyActivity, AddWorkout, Calender, Settings, ReminderPopUp):
+        for F in (NewUser, Profile, DailyActivity, AddWorkout, CalenderSearch, Settings, ReminderPopUp, WorkoutCalendar):
             frame = F(container, self)
             self.frames[F] = frame
             frame.grid(row=0, column=0, sticky="nsew")
@@ -77,7 +79,7 @@ class tkinterApp(Tk):
 
 
 def toolbar(self, controller):
-    button_plus = Button(self, text='Calender', command=lambda: controller.show_frame(Calender), bg="gray70",
+    button_plus = Button(self, text='Calender', command=lambda: controller.show_frame(WorkoutCalendar), bg="gray70",
                          bd=3, pady=5, font=("Helvetica", Fsize), width=Bwidth)
     # button_plus.grid(row=10, column=0, sticky=W)
     button_plus.place(relx=0.1, rely=1, anchor=S)
@@ -320,7 +322,7 @@ def populatelists(ts, ds, du, et, p, dt, pl):
     # print(rows)
 
 
-class Calender(Frame):
+class CalenderSearch(Frame):
     def __init__(self, parent, controller):
         Frame.__init__(self, parent)
         self.controller = controller
@@ -432,7 +434,9 @@ class Calender(Frame):
         # SpinTestYear = Spinbox(self, from_ = 2000, to = 2020, width=4)
         # SpinTestYear.place(relx=0.6, rely=0.70, anchor=N)
 
-        toolbar(self, controller)
+        exit_btn = Button(self, text='Ignore', command=lambda: controller.show_frame(WorkoutCalendar), bg="gray70",
+                          bd=3, pady=5, font=("Helvetica", Fsize), width=Bwidth)
+        exit_btn.pack()
 
 class Settings(Frame):
     def __init__(self, parent, controller):
@@ -449,7 +453,7 @@ class Settings(Frame):
         RemindersLabel.grid(row=1, column=2)
         Reminders = Checkbutton(self, text="RemindUser", variable=vars_remind_user)
         Reminders.grid(row=4, column=2)
-        left_btn = Button(self, text='x', width=3, command=lambda: printz(vars_remind_user.get()))
+        left_btn = Button(self, text='x', width=3)
         left_btn.grid(row=3, column=2)
 
         self.controller.shared_data["Remind"].set(vars_remind_user.get())
@@ -471,8 +475,20 @@ class ReminderPopUp(Frame):
         #command = lambda: controller.show_frame(Profile)
 
 
-def printz(z):
-    print(z)
+class WorkoutCalendar(Frame):
+    def __init__(self, parent, controller):
+        Frame.__init__(self, parent)
+        self.controller = controller
+        self.configure(bg="#B3B3B3")
+
+        srch_btn = Button(self, text='Ignore', command=lambda: controller.show_frame(CalenderSearch), bg="gray70",
+               bd=3, pady=5, font=("Helvetica", Fsize), width=Bwidth)
+
+        cal = Calendar(self, selectmode="day", year=2020, month=5)
+        cal.pack(pady=20)
+        srch_btn.pack()
+
+        toolbar(self, controller)
 
 
 # Driver Code
