@@ -42,29 +42,29 @@ c.execute('''CREATE TABLE Exercises
 
 #users
 c.execute('''INSERT INTO Users(UserID, LastName, FirstName, DoB, Weight, Height, Gender) 
-VALUES (1, 'Davila', 'Nancy', '2003-01-02', 56, 126, 'Female')''')
+VALUES (1, 'Davila', 'Nancy', '2003/01/02', 56, 126, 'Female')''')
 
 c.execute('''INSERT INTO Users(UserID, LastName, FirstName, DoB, Weight, Height, Gender) 
-VALUES (2, 'Fuller', 'Andrew', '2001-12-01', 47, 134, 'Male')''')
+VALUES (2, 'Fuller', 'Andrew', '2001/12/01', 47, 134, 'Male')''')
 
 c.execute('''INSERT INTO Users(UserID, LastName, FirstName, DoB, Weight, Height, Gender) 
-VALUES (3, 'Buchanan', 'Steven', '2006-11-31', 78, 141, 'Male')''')
+VALUES (3, 'Buchanan', 'Steven', '2006/11/31', 78, 141, 'Male')''')
 
 #sessions
 c.execute('''INSERT INTO Sessions(SessionID, UserID, StartDate, StartTime, Duration)
-VALUES (1, 1, "2018-05-26", "06:55:00", 5)''')
+VALUES (1, 1, "2018/05/26", "06:55", 5)''')
 c.execute('''INSERT INTO Sessions(SessionID, UserID, StartDate, StartTime, Duration)
-VALUES (2, 1, "2016-11-11", "02:45:00", 15)''')
+VALUES (2, 1, "2016/11/11", "02:45", 15)''')
 
 c.execute('''INSERT INTO Sessions(SessionID, UserID, StartDate, StartTime, Duration)
-VALUES (3, 2, "2016-11-11", "02:35:00", 25)''')
+VALUES (3, 2, "2016/11/11", "02:35", 25)''')
 c.execute('''INSERT INTO Sessions(SessionID, UserID, StartDate, StartTime, Duration)
-VALUES (4, 2, "2016-11-11", "04:25:00", 35)''')
+VALUES (4, 2, "2016/11/11", "04:25", 35)''')
 
 c.execute('''INSERT INTO Sessions(SessionID, UserID, StartDate, StartTime, Duration)
-VALUES (5, 3, "2014-07-30", "11:15:00", 45)''')
+VALUES (5, 3, "2014/07/30", "11:15", 45)''')
 c.execute('''INSERT INTO Sessions(SessionID, UserID, StartDate, StartTime, Duration)
-VALUES (6, 3, "2021-05-05", "03:55:00", 65)''')
+VALUES (6, 3, "2021/05/06", "03:00", 60)''')
 
 #exercises
 c.execute('''INSERT INTO Exercises(ExerciseID, ExerciseName, Type)

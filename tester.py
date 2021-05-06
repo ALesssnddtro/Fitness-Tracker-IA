@@ -5,38 +5,50 @@ from datetime import datetime
 from datetime import timedelta
 
 LARGEFONT = ("Verdana", 35)
-firstStartUp = True
 Bwidth = 12
 Fsize = 11
 
 def ReminderCheck():
+
+    Notif = False
+
     conn = sqlite3.connect('library.db')
     c = conn.cursor()
+    CurrentDate = datetime.now()
+
     for row in c.execute('SELECT * FROM Sessions'):
+        Duration = row[4]
+        CurrentDate = CurrentDate.strftime("%Y/%m/%d %I:%M %p")
+        CurrentDate = datetime.strptime(CurrentDate, "%Y/%m/%d %H:%M %p")
 
-        duration = row[4]
-        v_date = row[2].split("-")
-        v_time = row[3].split(":")
-        minStart = datetime.today()
+        ExpectedDateMin = row[2] + " " + row[3]
+        ExpectedDateMin = datetime.strptime(ExpectedDateMin, "%Y/%m/%d %I:%M")
+        ExpectedDateMax = ExpectedDateMin + timedelta(minutes=Duration)
 
-        maxStart = minStart + timedelta(minutes=duration)
+        print(CurrentDate, ExpectedDateMin, ExpectedDateMax)
 
-        print(v_time[1], minStart.minute)
+        if CurrentDate > ExpectedDateMin and CurrentDate < ExpectedDateMax:
+            Notif = True
 
-        if v_date[0] == minStart.year and v_date[1] == minStart.month and v_date[2] == minStart.day:
-            if ( v_time[0] >= minStart.strftime("%I") and v_time[1] >= minStart.minute ) and ( v_time[0] < maxStart.strftime("%I") and v_time[1] < maxStart.minute) :
-                print("day is the day")
-
-ReminderCheck()
+    return Notif
 
 class tkinterApp(Tk):
 
     def __init__(self):
         Tk.__init__(self)
+
+        self.shared_data = {
+            "Remind": IntVar(),
+            "FirstStartUp": IntVar()
+        }
+
+        self.shared_data["Remind"].set(1)
+
+        print(self.shared_data["Remind"].get())
+
         self.geometry("600x500")
         self.resizable(width=False, height=False)
         self.title("Fitness Tracker")
-        
 
         container = Frame(self)
         container.pack(side="top", fill="both", expand=True)
@@ -46,58 +58,55 @@ class tkinterApp(Tk):
 
         self.frames = {}
 
-        for F in (NewUser, Profile, DailyActivity, AddWorkout, Calender, Settings):
-
+        for F in (NewUser, Profile, DailyActivity, AddWorkout, Calender, Settings, ReminderPopUp):
             frame = F(container, self)
             self.frames[F] = frame
             frame.grid(row=0, column=0, sticky="nsew")
 
-        self.show_frame(Profile)
+        RemindInt = self.shared_data["Remind"].get()
+        if (RemindInt == 1):
+            self.show_frame(ReminderPopUp)
+        else:
+            self.show_frame(Profile)
+
+        print(self.shared_data["Remind"].get())
 
     def show_frame(self, cont):
         frame = self.frames[cont]
         frame.tkraise()
 
-    def get_page(self, page_class):
-        return self.frames[page_class]
 
 def toolbar(self, controller):
-    
-    
     button_plus = Button(self, text='Calender', command=lambda: controller.show_frame(Calender), bg="gray70",
-                     bd=3,pady=5, font=("Helvetica", Fsize), width=Bwidth)
-    #button_plus.grid(row=10, column=0, sticky=W)
+                         bd=3, pady=5, font=("Helvetica", Fsize), width=Bwidth)
+    # button_plus.grid(row=10, column=0, sticky=W)
     button_plus.place(relx=0.1, rely=1, anchor=S)
 
-    
     button_plus = Button(self, text='DailyActivity', command=lambda: controller.show_frame(DailyActivity), bg="gray70",
-                     bd=3,pady=5, font=("Helvetica", Fsize), width=Bwidth)
-    #button_plus.grid(row=10, column=1, sticky=W)
+                         bd=3, pady=5, font=("Helvetica", Fsize), width=Bwidth)
+    # button_plus.grid(row=10, column=1, sticky=W)
     button_plus.place(relx=0.3, rely=1, anchor=S)
 
-    
     button_plus = Button(self, text='+', command=lambda: controller.show_frame(AddWorkout), bg="gray70",
-                     bd=3, pady=5, font=("Helvetica", Fsize), width=Bwidth)
-    #button_plus.grid(row=10, column=2, sticky=W)
+                         bd=3, pady=5, font=("Helvetica", Fsize), width=Bwidth)
+    # button_plus.grid(row=10, column=2, sticky=W)
     button_plus.place(relx=0.5, rely=1, anchor=S)
 
-
     button_plus = Button(self, text='Profile', command=lambda: controller.show_frame(Profile), bg="gray70",
-                     bd=3,pady=5, font=("Helvetica", Fsize), width=Bwidth)
-    #button_plus.grid(row=10, column=3, sticky=W)
+                         bd=3, pady=5, font=("Helvetica", Fsize), width=Bwidth)
+    # button_plus.grid(row=10, column=3, sticky=W)
     button_plus.place(relx=0.7, rely=1, anchor=S)
 
-
     button_plus = Button(self, text='Settings', command=lambda: controller.show_frame(Settings), bg="gray70",
-                     bd=3,pady=5, font=("Helvetica", Fsize), width=Bwidth)
-    #button_plus.grid(row=10, column=4, sticky=W)
+                         bd=3, pady=5, font=("Helvetica", Fsize), width=Bwidth)
+    # button_plus.grid(row=10, column=4, sticky=W)
     button_plus.place(relx=0.9, rely=1, anchor=S)
-
 
 
 class NewUser(Frame):
     def __init__(self, parent, controller):
         Frame.__init__(self, parent)
+        self.controller = controller
         self.configure(bg="#B3B3B3")
 
         name_text = StringVar()
@@ -110,6 +119,7 @@ class NewUser(Frame):
 class Profile(Frame):
     def __init__(self, parent, controller):
         Frame.__init__(self, parent)
+        self.controller = controller
         self.configure(bg="#B3B3B3")
 
         name_text = StringVar()
@@ -117,25 +127,24 @@ class Profile(Frame):
         name_label.grid(row=3, column=0, sticky=E)
 
         toolbar(self, controller)
-        
-        
+
 
 # second window frame page1
 class DailyActivity(Frame):
 
     def __init__(self, parent, controller):
         Frame.__init__(self, parent)
+        self.controller = controller
         self.configure(bg="#B3B3B3")
-        toolbar(self, controller)
 
-        
-        
+        toolbar(self, controller)
 
 
 # third window frame page2
 class AddWorkout(Frame):
     def __init__(self, parent, controller):
         Frame.__init__(self, parent)
+        self.controller = controller
         self.configure(bg="#B3B3B3")
 
         var_sessions_length = IntVar()
@@ -147,8 +156,10 @@ class AddWorkout(Frame):
         var_sessions_reps = IntVar()
         var_sessions_start = StringVar()
         var_sessions_end = StringVar()
+
         def nav_left():
             print("l")
+
         def nav_right():
             print("r")
 
@@ -165,35 +176,35 @@ class AddWorkout(Frame):
         id_label.grid(row=1, column=0)
         id_entry = Entry(self, textvariable=var_sessions_id, width=Bwidth)
         id_entry.grid(row=1, column=1)
-        
+
         # MusclesTrained
         trained_text = StringVar()
         trained_label = Label(self, text='Muscles Trained', width=Bwidth)
         trained_label.grid(row=1, column=2)
         trained_entry = Entry(self, textvariable=var_sessions_trained, width=Bwidth)
         trained_entry.grid(row=1, column=3)
-        
+
         # CaloriesBurnt
         burnt_text = StringVar()
         burnt_label = Label(self, text='Calories Burnt', width=Bwidth)
         burnt_label.grid(row=2, column=0)
         burnt_entry = Entry(self, textvariable=var_sessions_burnt, width=Bwidth)
         burnt_entry.grid(row=2, column=1)
-        
+
         # Reps
         reps_text = StringVar()
         reps_label = Label(self, text='Reps', width=Bwidth)
         reps_label.grid(row=2, column=2)
         reps_entry = Entry(self, textvariable=var_sessions_reps, width=Bwidth)
         reps_entry.grid(row=2, column=3)
-        
+
         # StartTime
         start_text = StringVar()
         start_label = Label(self, text='StartTime', width=Bwidth)
         start_label.grid(row=3, column=0)
         start_entry = Entry(self, textvariable=var_sessions_start, width=Bwidth)
         start_entry.grid(row=3, column=1)
-        
+
         # EndTime
         end_text = StringVar()
         end_label = Label(self, text='EndTime', width=Bwidth)
@@ -201,7 +212,6 @@ class AddWorkout(Frame):
         end_entry = Entry(self, textvariable=var_sessions_end, width=Bwidth)
         end_entry.grid(row=3, column=3)
 
-        
         add_btn = Button(self, text='Add Session', width=Bwidth)
         add_btn.grid(row=5, column=0)
 
@@ -217,11 +227,10 @@ class AddWorkout(Frame):
 
 
 def new_window(rows):
-
     pop_up = Toplevel()
     pop_up.geometry("750x280")
     pop_up.title("data")
-    btn_button = Button(pop_up, text="close", command=lambda:pop_up.destroy())
+    btn_button = Button(pop_up, text="close", command=lambda: pop_up.destroy())
     btn_button.place(relx=0.5, rely=0.88, anchor=N)
 
     col = ['test1', 'test2', 'test3', 'test4', 'test5', 'test6', 'test7', 'test8', 'test9', 'test10']
@@ -238,7 +247,7 @@ def new_window(rows):
     router_tree_view.heading('#9', text='ExerciseName')
     router_tree_view.heading('#10', text='Daytype')
 
-    #Sessions.SessionID, Sessions.StartTime, Sessions.EndTime, SessionDetails.Sets, SessionDetails.Reps, SessionDetails.Sets, SessionDetails.Place, SessionDetails.IsPlanned, Exercises.ExerciseName
+    # Sessions.SessionID, Sessions.StartTime, Sessions.EndTime, SessionDetails.Sets, SessionDetails.Reps, SessionDetails.Sets, SessionDetails.Place, SessionDetails.IsPlanned, Exercises.ExerciseName
 
     router_tree_view.column("#1", width=70)
     router_tree_view.column("#2", width=70)
@@ -251,31 +260,30 @@ def new_window(rows):
     router_tree_view.column("#9", width=70)
     router_tree_view.column("#10", width=90)
 
-
     router_tree_view.place(relx=0.5, rely=0.05, anchor=N)
-    
+
     conn = sqlite3.connect('library.db')
     c = conn.cursor()
 
     for i in router_tree_view.get_children():
         router_tree_view.delete(i)
 
-    #(3, 1, 2, 3, 12, 'False', 'home')
+    # (3, 1, 2, 3, 12, 'False', 'home')
     for i in range(len(rows)):
         router_tree_view.insert('', 'end', values=rows[i])
 
-def populatelists(ts, ds, du, et, p, dt, pl):
 
+def populatelists(ts, ds, du, et, p, dt, pl):
     true_pl = "True"
     if pl == 1:
         true_pl = "True"
     else:
         true_pl = "False"
 
-    query = "SELECT Sessions.SessionID, Sessions.StartDate, Sessions.StartTime, Sessions.Duration, SessionDetails.Sets, SessionDetails.Reps, SessionDetails.Place, SessionDetails.IsPlanned, Exercises.ExerciseName, Exercises.Type FROM Sessions INNER JOIN SessionDetails ON Sessions.SessionID = SessionDetails.SessionID INNER JOIN Exercises ON SessionDetails.ExerciseID = Exercises.ExerciseID WHERE IsPlanned = "  + "'" + true_pl + "'"
-    #print(query)
+    query = "SELECT Sessions.SessionID, Sessions.StartDate, Sessions.StartTime, Sessions.Duration, SessionDetails.Sets, SessionDetails.Reps, SessionDetails.Place, SessionDetails.IsPlanned, Exercises.ExerciseName, Exercises.Type FROM Sessions INNER JOIN SessionDetails ON Sessions.SessionID = SessionDetails.SessionID INNER JOIN Exercises ON SessionDetails.ExerciseID = Exercises.ExerciseID WHERE IsPlanned = " + "'" + true_pl + "'"
+    # print(query)
 
-    #---------------------------------------------------
+    # ---------------------------------------------------
 
     if (ts != "hh:mm:ss" and ts != "NULL"):
         query = query + " AND StartTime = " + "'" + ts + "'"
@@ -283,7 +291,7 @@ def populatelists(ts, ds, du, et, p, dt, pl):
     if (ts != "hh:mm:ss" and ts != "NULL"):
         query = query + " AND EndTime = " + "'" + du + "'"
 
-    #----------------------------------------------------
+    # ----------------------------------------------------
 
     if (ds != "yyyy-mm-dd" and ds != "NULL"):
         query = query + " AND StartDate = " + "'" + ds + "'"
@@ -291,7 +299,7 @@ def populatelists(ts, ds, du, et, p, dt, pl):
     if (du != "yyyy-mm-dd" and du != "NULL"):
         query = query + " AND EndDate = " + "'" + du + "'"
 
-    #----------------------------------------------------
+    # ----------------------------------------------------
 
     if (et != "Exercise Type" and et != "NULL"):
         query = query + " AND ExerciseName = " + "'" + et + "'"
@@ -301,7 +309,7 @@ def populatelists(ts, ds, du, et, p, dt, pl):
 
     if (dt != "Day Type" and dt != "NULL"):
         query = query + " AND Type = " + "'" + dt + "'"
-    
+
     print(query)
 
     conn = sqlite3.connect('library.db')
@@ -309,14 +317,15 @@ def populatelists(ts, ds, du, et, p, dt, pl):
     c.execute(query)
     rows = c.fetchall()
     new_window(rows)
-    #print(rows)
+    # print(rows)
+
 
 class Calender(Frame):
     def __init__(self, parent, controller):
         Frame.__init__(self, parent)
+        self.controller = controller
         self.configure(bg="#B3B3B3")
 
-        
         var_date_start = StringVar()
         var_duration = StringVar()
 
@@ -328,9 +337,8 @@ class Calender(Frame):
 
         var_place = StringVar()
 
-        #bool are 0 and 1
+        # bool are 0 and 1
         var_is_Planned = IntVar()
-        
 
         var_reps = IntVar()
         var_sets = IntVar()
@@ -354,7 +362,7 @@ class Calender(Frame):
         for row in c.execute('SELECT * FROM Exercises'):
             if row[1] not in Types:
                 Types.append(row[1])
-        
+
         Places = ["NULL"]
         for row in c.execute('SELECT * FROM SessionDetails'):
             if row[6] not in Places:
@@ -365,83 +373,109 @@ class Calender(Frame):
             if row[2] not in Days:
                 Days.append(row[2])
 
-        btn_search = Button(self, text="search", command=lambda: populatelists(var_time_start.get(), var_date_start.get(), var_duration.get(), var_exercise_type.get(), var_place.get(), var_day_type.get(), var_is_Planned.get()))
+        btn_search = Button(self, text="search",
+                            command=lambda: populatelists(var_time_start.get(), var_date_start.get(),
+                                                          var_duration.get(), var_exercise_type.get(), var_place.get(),
+                                                          var_day_type.get(), var_is_Planned.get()))
         btn_search.place(relx=0.5, rely=0.7, anchor=N)
 
-
-        lb_dateStart = Label(self, text = "StartDate")
-        en_dateStart = Entry(self, textvariable=var_date_start, bd = 5)
-        #dateStart.grid(row=2, column=0)
-        #EdateStart.grid(row=2, column=1)
+        lb_dateStart = Label(self, text="StartDate")
+        en_dateStart = Entry(self, textvariable=var_date_start, bd=5)
+        # dateStart.grid(row=2, column=0)
+        # EdateStart.grid(row=2, column=1)
         lb_dateStart.place(relx=0.35, rely=0.22, anchor=N)
         en_dateStart.place(relx=0.5, rely=0.22, anchor=N)
 
-        #------------------------------------------------
+        # ------------------------------------------------
 
-        lb_timeStart = Label(self, text = "StartTime")
-        en_timeStart = Entry(self, textvariable=var_time_start, bd = 5)
-        #dateStart.grid(row=2, column=0)
-        #EdateStart.grid(row=2, column=1)
+        lb_timeStart = Label(self, text="StartTime")
+        en_timeStart = Entry(self, textvariable=var_time_start, bd=5)
+        # dateStart.grid(row=2, column=0)
+        # EdateStart.grid(row=2, column=1)
         lb_timeStart.place(relx=0.35, rely=0.06, anchor=N)
         en_timeStart.place(relx=0.5, rely=0.06, anchor=N)
 
-        lb_timeEnd = Label(self, text = "EndTime")
-        en_timeEnd = Entry(self, textvariable=var_duration, bd = 5)
-        #dateEnd.grid(row=2, column=3)
-        #EdateEnd.grid(row=2, column=4)
+        lb_timeEnd = Label(self, text="EndTime")
+        en_timeEnd = Entry(self, textvariable=var_duration, bd=5)
+        # dateEnd.grid(row=2, column=3)
+        # EdateEnd.grid(row=2, column=4)
         lb_timeEnd.place(relx=0.35, rely=0.14, anchor=N)
         en_timeEnd.place(relx=0.5, rely=0.14, anchor=N)
 
-        #------------------------------------------------
+        # ------------------------------------------------
 
         op_exType = OptionMenu(self, var_exercise_type, *Types)
-        op_exType.config(width=Bwidth-3, font=('Helvetica', Fsize))
-        #type.grid(row=3, column=2)
+        op_exType.config(width=Bwidth - 3, font=('Helvetica', Fsize))
+        # type.grid(row=3, column=2)
         op_exType.place(relx=0.5, rely=0.38, anchor=N)
 
         op_place = OptionMenu(self, var_place, *Places)
-        op_place.config(width=Bwidth-3, font=('Helvetica', Fsize))
-        #place.grid(row=4, column=2)
+        op_place.config(width=Bwidth - 3, font=('Helvetica', Fsize))
+        # place.grid(row=4, column=2)
         op_place.place(relx=0.5, rely=0.46, anchor=N)
 
         op_daytype = OptionMenu(self, var_day_type, *Days)
-        op_daytype.config(width=Bwidth-3, font=('Helvetica', Fsize))
-        #Intensity.grid(row=5, column=2)
+        op_daytype.config(width=Bwidth - 3, font=('Helvetica', Fsize))
+        # Intensity.grid(row=5, column=2)
         op_daytype.place(relx=0.5, rely=0.54, anchor=N)
 
-        cb_IsPlanned = Checkbutton(self, text = "Planned", variable = var_is_Planned)
-        #Reminders.grid(row=6, column=2)
+        cb_IsPlanned = Checkbutton(self, text="Planned", variable=var_is_Planned)
+        # Reminders.grid(row=6, column=2)
         cb_IsPlanned.place(relx=0.5, rely=0.62, anchor=N)
 
-        #SpinTestDay = Spinbox(self, from_ = 1, to = 31, width=4)
-        #SpinTestDay.place(relx=0.4, rely=0.70, anchor=N)
+        # SpinTestDay = Spinbox(self, from_ = 1, to = 31, width=4)
+        # SpinTestDay.place(relx=0.4, rely=0.70, anchor=N)
 
-        #SpinTestMonth = Spinbox(self, from_ = 1, to = 12, width=4)
-        #SpinTestMonth.place(relx=0.5, rely=0.70, anchor=N)
+        # SpinTestMonth = Spinbox(self, from_ = 1, to = 12, width=4)
+        # SpinTestMonth.place(relx=0.5, rely=0.70, anchor=N)
 
-        #SpinTestYear = Spinbox(self, from_ = 2000, to = 2020, width=4)
-        #SpinTestYear.place(relx=0.6, rely=0.70, anchor=N)
+        # SpinTestYear = Spinbox(self, from_ = 2000, to = 2020, width=4)
+        # SpinTestYear.place(relx=0.6, rely=0.70, anchor=N)
 
         toolbar(self, controller)
-
 
 class Settings(Frame):
     def __init__(self, parent, controller):
         Frame.__init__(self, parent)
+        self.controller = controller
         self.configure(bg="#B3B3B3")
 
-        vars_remind_user = IntVar(0)
 
-        RemindersLabel = Label(self, text='RemindUser')
-        #RemindersLabel.grid(row=4, column=2)
+
+        vars_remind_user = IntVar(self)
+        vars_remind_user.set(self.controller.shared_data["Remind"].get())
+
+        RemindersLabel = Label(self, text='Settings')
+        RemindersLabel.grid(row=1, column=2)
         Reminders = Checkbutton(self, text="RemindUser", variable=vars_remind_user)
         Reminders.grid(row=4, column=2)
+        left_btn = Button(self, text='x', width=3, command=lambda: printz(vars_remind_user.get()))
+        left_btn.grid(row=3, column=2)
 
+        self.controller.shared_data["Remind"].set(vars_remind_user.get())
 
         toolbar(self, controller)
 
 
+class ReminderPopUp(Frame):
+    def __init__(self, parent, controller):
+        Frame.__init__(self, parent)
+        self.controller = controller
+        self.configure(bg="#B3B3B3")
+
+        x = self.controller.shared_data["Remind"].get()
+
+        btn_close = Button(self, text='Ignore', command=lambda: controller.show_frame(Profile), bg="gray70",
+               bd=3, pady=5, font=("Helvetica", Fsize), width=Bwidth)
+        btn_close.grid(row=3, column=2)
+        #command = lambda: controller.show_frame(Profile)
+
+
+def printz(z):
+    print(z)
+
+
 # Driver Code
-#start()
+# start()
 app = tkinterApp()
 app.mainloop()
