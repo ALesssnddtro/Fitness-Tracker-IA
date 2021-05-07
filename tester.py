@@ -27,7 +27,7 @@ def ReminderCheck():
         ExpectedDateMin = datetime.strptime(ExpectedDateMin, "%Y/%m/%d %I:%M")
         ExpectedDateMax = ExpectedDateMin + timedelta(minutes=Duration)
 
-        print(CurrentDate, ExpectedDateMin, ExpectedDateMax)
+        #print(CurrentDate, ExpectedDateMin, ExpectedDateMax)
 
         if CurrentDate > ExpectedDateMin and CurrentDate < ExpectedDateMax:
             Notif = True
@@ -35,7 +35,6 @@ def ReminderCheck():
     return Notif
 
 class tkinterApp(Tk):
-
     def __init__(self):
         Tk.__init__(self)
 
@@ -46,7 +45,7 @@ class tkinterApp(Tk):
 
         self.shared_data["Remind"].set(1)
 
-        print(self.shared_data["Remind"].get())
+        #print(self.shared_data["Remind"].get())
 
         self.geometry("600x500")
         self.resizable(width=False, height=False)
@@ -60,22 +59,25 @@ class tkinterApp(Tk):
 
         self.frames = {}
 
-        for F in (NewUser, Profile, DailyActivity, AddWorkout, CalenderSearch, Settings, ReminderPopUp, WorkoutCalendar):
+        for F in (NewUser, Profile, DailyActivity, AddWorkout, CalenderSearch, Settings, ReminderPopUp, WorkoutCalendar, SessionInfoScreen):
             frame = F(container, self)
             self.frames[F] = frame
             frame.grid(row=0, column=0, sticky="nsew")
 
         RemindInt = self.shared_data["Remind"].get()
-        if (RemindInt == 1):
+        if ReminderCheck() and (RemindInt == 1):
             self.show_frame(ReminderPopUp)
         else:
             self.show_frame(Profile)
 
-        print(self.shared_data["Remind"].get())
+        #print(self.shared_data["Remind"].get())
 
     def show_frame(self, cont):
         frame = self.frames[cont]
         frame.tkraise()
+
+    def find_page(self, page_class):
+        return self.frames[page_class]
 
 
 def toolbar(self, controller):
@@ -282,7 +284,10 @@ def populatelists(ts, ds, du, et, p, dt, pl):
     else:
         true_pl = "False"
 
-    query = "SELECT Sessions.SessionID, Sessions.StartDate, Sessions.StartTime, Sessions.Duration, SessionDetails.Sets, SessionDetails.Reps, SessionDetails.Place, SessionDetails.IsPlanned, Exercises.ExerciseName, Exercises.Type FROM Sessions INNER JOIN SessionDetails ON Sessions.SessionID = SessionDetails.SessionID INNER JOIN Exercises ON SessionDetails.ExerciseID = Exercises.ExerciseID WHERE IsPlanned = " + "'" + true_pl + "'"
+    query = "SELECT Sessions.SessionID, Sessions.StartDate, Sessions.StartTime, Sessions.Duration, SessionDetails.Sets, " \
+            "SessionDetails.Reps, SessionDetails.Place, SessionDetails.IsPlanned, Exercises.ExerciseName, Exercises.Type " \
+            "FROM Sessions INNER JOIN SessionDetails ON Sessions.SessionID = SessionDetails.SessionID " \
+            "INNER JOIN Exercises ON SessionDetails.ExerciseID = Exercises.ExerciseID WHERE IsPlanned = " + "'" + true_pl + "'"
     # print(query)
 
     # ---------------------------------------------------
@@ -312,7 +317,7 @@ def populatelists(ts, ds, du, et, p, dt, pl):
     if (dt != "Day Type" and dt != "NULL"):
         query = query + " AND Type = " + "'" + dt + "'"
 
-    print(query)
+    #print(query)
 
     conn = sqlite3.connect('library.db')
     c = conn.cursor()
@@ -481,15 +486,129 @@ class WorkoutCalendar(Frame):
         self.controller = controller
         self.configure(bg="#B3B3B3")
 
-        srch_btn = Button(self, text='Ignore', command=lambda: controller.show_frame(CalenderSearch), bg="gray70",
+        CurrentDate = datetime.now()
+        self.caldate = StringVar()
+
+
+        cal = Calendar(self, selectmode="day", year=CurrentDate.year, month=CurrentDate.month, day=CurrentDate.day,
+                       font=("Helvetica", Fsize))
+
+        print(cal.get_date())
+
+
+
+        search_btn = Button(self, text='Search', command=lambda: controller.show_frame(CalenderSearch), bg="gray70",
                bd=3, pady=5, font=("Helvetica", Fsize), width=Bwidth)
 
-        cal = Calendar(self, selectmode="day", year=2020, month=5)
-        cal.pack(pady=20)
-        srch_btn.pack()
+
+
+        def both():
+            self.caldate.set(cal.get_date())
+            loaddate(self.caldate.get())
+
+        load_btn = Button(self, text='Load', command=both, bg="gray70",
+                          bd=3, pady=5, font=("Helvetica", Fsize), width=Bwidth)
+
+
+        load_btn.place(relx=0.1, rely=0, anchor=NW)
+        search_btn.place(relx=0.9, rely=0, anchor=NE)
+
+        cal.place(relx=0.5, rely=0.08, anchor=N, width=600, height=420)
+
+
+
 
         toolbar(self, controller)
 
+
+def loaddate(selected_Time):
+
+    print(selected_Time, "a")
+
+    conn = sqlite3.connect('library.db')
+    c = conn.cursor()
+
+    st_array = selected_Time.split("/")
+    if len(st_array[0]) == 1:
+        st_array[0] = "0" + st_array[0]
+
+    if len(st_array[1]) == 1:
+        st_array[1] = "0" + st_array[1]
+
+    selected_Time = "20" + st_array[2] + "/" + st_array[0] + "/" + st_array[1]
+
+    print(selected_Time, "b")
+
+    c.execute("SELECT Sessions.SessionID, Sessions.StartDate, Sessions.StartTime, Sessions.Duration, SessionDetails.Sets, "
+              "SessionDetails.Reps, SessionDetails.Place, SessionDetails.IsPlanned, Exercises.ExerciseName, Exercises.Type "
+              "FROM Sessions INNER JOIN SessionDetails ON Sessions.SessionID = SessionDetails.SessionID "
+              "INNER JOIN Exercises ON SessionDetails.ExerciseID = Exercises.ExerciseID WHERE StartDate = " + "'" + selected_Time + "'")
+    data = c.fetchall()
+    new_window(data)
+
+
+class SessionInfoScreen(Frame):
+    def __init__(self, parent, controller):
+        Frame.__init__(self, parent)
+        self.controller = controller
+        self.configure(bg="#B3B3B3")
+
+        calendarpage = self.controller.find_page(WorkoutCalendar)
+
+        selecteddate = calendarpage.caldate.get()
+        print("#------------------------#")
+
+
+
+        btn_close = Button(self, text='X', command=lambda: controller.show_frame(WorkoutCalendar), bg="gray70",
+                           bd=3, pady=5, font=("Helvetica", Fsize), width=4)
+        btn_close.place(relx=0, rely=0, anchor=NW)
+
+
+
+        btn_left = Button(self, text='<', bg="gray70",
+                           bd=3, pady=5, font=("Helvetica", Fsize), width=4)
+        btn_left.place(relx=0.15, rely=0, anchor=NW)
+
+        btn_right = Button(self, text='>', bg="gray70",
+                           bd=3, pady=5, font=("Helvetica", Fsize), width=4)
+        btn_right.place(relx=0.85, rely=0, anchor=NE)
+
+        lb_duration = Label(self, text="")
+        lb_duration.place(relx=0.1, rely=0.2, anchor=S)
+
+        lb_duration = Label(self, text="Duration")
+        lb_duration.place(relx=0.1, rely=0.2, anchor=S)
+
+        lb_duration_num = Label(self, text="45 minutes")
+        lb_duration_num.place(relx=0.1, rely=0.25, anchor=S)
+
+        lb_calories_brnt = Label(self, text="Calories Burnt")
+        lb_calories_brnt.place(relx=0.1, rely=0.45, anchor=S)
+
+        lb_calories_brnt_num = Label(self, text="320 calories")
+        lb_calories_brnt_num.place(relx=0.1, rely=0.50, anchor=S)
+
+
+        lb_workout_list = Label(self, text="Workouts")
+        lb_workout_list.place(relx=0.1, rely=0.7, anchor=S)
+
+        Workout1 = Button(self, text='test1', bg="gray70",
+                           bd=3, pady=5, font=("Helvetica", Fsize), width=4)
+        Workout1.place(relx=0.1, rely=0.8, anchor=S)
+
+        Workout2 = Button(self, text='test1', bg="gray70",
+                          bd=3, pady=5, font=("Helvetica", Fsize), width=4)
+        Workout2.place(relx=0.2, rely=0.8, anchor=S)
+
+        Workout3 = Button(self, text='test1', bg="gray70",
+                          bd=3, pady=5, font=("Helvetica", Fsize), width=4)
+        Workout3.place(relx=0.3, rely=0.8, anchor=S)
+
+        vscrollbar = Scrollbar(self, orient=HORIZONTAL)
+        vscrollbar.place(relx=0.5, rely=0.95, anchor=S, width=600)
+
+        #to pass variables across class use find_page and make sure its tkinter variable and its called using self.variable
 
 # Driver Code
 # start()

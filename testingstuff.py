@@ -28,24 +28,22 @@ def ReminderCheck():
             print("day is the day")
 
 def test():
-    conn = sqlite3.connect('library.db')
-    c = conn.cursor()
-    CurrentDate = datetime.now()
-    for row in c.execute('SELECT * FROM Sessions'):
-        Duration = row[4]
-        CurrentDate = CurrentDate.strftime("%Y/%m/%d %I:%M %p")
-        CurrentDate = datetime.strptime(CurrentDate, "%Y/%m/%d %H:%M %p")
+    canvas = Canvas()
+    scroll_y = Scrollbar(, orient="vertical", command=frame)
 
-        ExpectedDateMin = row[2] + " " + row[3]
-        ExpectedDateMin = datetime.strptime(ExpectedDateMin, "%Y/%m/%d %I:%M")
-        ExpectedDateMax = ExpectedDateMin + timedelta(minutes=Duration)
+    frame = Frame(canvas)
+    # group of widgets
+    for i in range(20):
+        tk.Label(frame, text='label %i' % i).pack()
+    # put the frame in the canvas
+    canvas.create_window(0, 0, anchor='nw', window=frame)
+    # make sure everything is displayed before configuring the scrollregion
+    canvas.update_idletasks()
 
-        print(CurrentDate, ExpectedDateMin, ExpectedDateMax)
+    canvas.configure(scrollregion=canvas.bbox('all'),
+                     yscrollcommand=scroll_y.set)
 
-        if CurrentDate > ExpectedDateMin and CurrentDate < ExpectedDateMax:
-            print("within")
-        else:
-            print("without")
-
+    canvas.pack(fill='both', expand=True, side='left')
+    scroll_y.pack(fill='y', side='right')
 test()
 
