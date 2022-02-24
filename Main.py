@@ -1,19 +1,21 @@
-from tkinter import *
-from tkcalendar import *
-from tkinter.ttk import Treeview
 import sqlite3
 from datetime import datetime
 from datetime import timedelta
+from tkinter import *
+from tkinter import messagebox
+from tkinter.ttk import Treeview
+
+from tkcalendar import *
 
 Bwidth = 12
 Fsize = 11
+conn = sqlite3.connect('library.db')
+c = conn.cursor()
 
 
-def ReminderCheck():
+def reminder_check():
     Notif = False
 
-    conn = sqlite3.connect('library.db')
-    c = conn.cursor()
     CurrentDate = datetime.now()
 
     for row in c.execute('SELECT * FROM Sessions'):
@@ -22,7 +24,7 @@ def ReminderCheck():
         CurrentDate = datetime.strptime(CurrentDate, "%Y/%m/%d %H:%M %p")
 
         ExpectedDateMin = row[2] + " " + row[3]
-        ExpectedDateMin = datetime.strptime(ExpectedDateMin, "%Y/%m/%d %I:%M")
+        ExpectedDateMin = datetime.strptime(ExpectedDateMin, "%Y/%m/%d %H:%M")
         ExpectedDateMax = ExpectedDateMin + timedelta(minutes=Duration)
 
         if CurrentDate > ExpectedDateMin and CurrentDate < ExpectedDateMax:
@@ -31,11 +33,9 @@ def ReminderCheck():
     return Notif
 
 
-def FirstStartUpCheck():
+def first_start_up_check():
     FirstStartUp = False
 
-    conn = sqlite3.connect('library.db')
-    c = conn.cursor()
     c.execute("SELECT * FROM User")
 
     data = c.fetchall()
@@ -63,23 +63,22 @@ class tkinterApp(Tk):
         self.frames = {}
 
         for F in (
-        NewUser, Profile, DailyActivity_Day, DailyActivity_Week, DailyActivity_Month, AddWorkout, CalenderSearch,
-        Settings, ReminderPopUp, WorkoutCalendar,
-        SessionScreenInfo, SpecificExerciseDetails, AddRoutine, AddRoutineNextStep, SessionScreenEdit,
-        AddExercise, UserScreenEdit):
+                NewUser, Profile, DailyActivity_Day, DailyActivity_Week, DailyActivity_Month, AddWorkout,
+                CalenderSearch,
+                Settings, ReminderPopUp, WorkoutCalendar,
+                SessionScreenInfo, SpecificExerciseDetails, AddRoutine, Routine_edit_days, SessionScreenEdit,
+                AddExercise, UserScreenEdit, ExerciseListEdit):
             frame = F(container, self)
             self.frames[F] = frame
             frame.grid(row=0, column=0, sticky="nsew")
 
-        conn = sqlite3.connect('library.db')
-        c = conn.cursor()
         c.execute("SELECT Reminders FROM User")
         reminders_on = c.fetchone()[0]
 
-        if FirstStartUpCheck() == True:
+        if first_start_up_check():
             self.show_frame(NewUser)
         else:
-            if ReminderCheck() and (reminders_on == 1):
+            if (reminders_on == 1): #and reminder_check():
                 self.show_frame(ReminderPopUp)
             else:
                 self.show_frame(Profile)
@@ -120,8 +119,6 @@ class NewUser(Frame):
         Frame.__init__(self, parent)
         self.controller = controller
         self.configure(bg="#B3B3B3")
-        conn = sqlite3.connect('library.db')
-        c = conn.cursor()
 
         lb_first_name = Label(self, text="First name")
         en_first_name = Entry(self)
@@ -170,16 +167,24 @@ class NewUser(Frame):
         create_btn.place(relx=0.5, rely=0.85, anchor=N)
 
 
+def calc_bmi():
+    c.execute('SELECT Weight, Height FROM User')
+    data = c.fetchall()[0]
+    meters_height = float(data[1]) / 100
+    bmi = data[0] / meters_height * meters_height
+
+    return bmi
+
+
 class Profile(Frame):
     def on_show_frame(self, event):
-        conn = sqlite3.connect('library.db')
-        c = conn.cursor()
         c.execute('SELECT * FROM User')
-        self.User_Data = c.fetchall()
+        self.User_Data = c.fetchall()[0]
 
-        self.var_name.set(self.User_Data[0][2] + " " + self.User_Data[0][1])
-        self.var_weight.set(str(self.User_Data[0][4]) + " Kg")
-        self.var_target_weight.set(str(self.User_Data[0][5]) + " Kg")
+        self.var_name.set(self.User_Data[2] + " " + self.User_Data[1])
+        self.var_weight.set(str(self.User_Data[4]) + " Kg")
+        self.var_target_weight.set(str(self.User_Data[5]) + " Kg")
+        self.var_bmi.set(calc_bmi())
 
     def __init__(self, parent, controller):
         Frame.__init__(self, parent)
@@ -187,27 +192,28 @@ class Profile(Frame):
         self.bind("<<ShowFrame>>", self.on_show_frame)  # when frame is loaded
         self.configure(bg="#B3B3B3")
 
-        conn = sqlite3.connect('library.db')
-        c = conn.cursor()
         c.execute('SELECT * FROM User')
-        self.User_Data = c.fetchall()
+        self.User_Data = c.fetchall()[0]
         if len(self.User_Data) == 0:
             self.User_Data = [("Last Name", "First Name", "DoB", "Weight", "Target Weight", "Height", "Gender")]
 
         self.var_name = StringVar()
-        self.var_calories_burnt = StringVar()
+        self.var_bmi = IntVar()
         self.var_weight = StringVar()
         self.var_target_weight = StringVar()
-
-        self.var_name.set(self.User_Data[0][2] + " " + self.User_Data[0][1])
-        self.var_weight.set(str(self.User_Data[0][4]) + " Kg")
-        self.var_target_weight.set(str(self.User_Data[0][5]) + " Kg")
+        print(self.User_Data)
+        self.var_name.set(self.User_Data[2] + " " + self.User_Data[1])
+        self.var_weight.set(str(self.User_Data[4]) + " Kg")
+        self.var_target_weight.set(str(self.User_Data[5]) + " Kg")
+        self.var_bmi.set(calc_bmi())
 
         name_label = Label(self, textvariable=self.var_name)
         name_label.place(relx=0.5, rely=0.5, anchor=N)
 
-        lb_name = Label(self, text="Calories Burnt Recently")
-        en_name = Entry(self, textvariable=self.var_calories_burnt, state="disabled")
+        lb_bmi = Label(self, text="BMI")
+        en_bmi = Entry(self, textvariable=self.var_bmi, state="disabled")
+
+        btn_bmi_info = Button(self, text="i", command=bmi_info, font="italic")
 
         lb_weight = Label(self, text="Weight")
         en_weight = Entry(self, textvariable=self.var_weight, state="disabled")
@@ -215,8 +221,8 @@ class Profile(Frame):
         lb_target_weight = Label(self, text="Target Weight")
         en_target_weight = Entry(self, textvariable=self.var_target_weight, state="disabled")
 
-        lb_name.place(relx=0.2, rely=0.65, anchor=S)
-        en_name.place(relx=0.2, rely=0.70, anchor=S)
+        lb_bmi.place(relx=0.2, rely=0.65, anchor=S)
+        en_bmi.place(relx=0.2, rely=0.70, anchor=S)
 
         lb_weight.place(relx=0.5, rely=0.65, anchor=S)
         en_weight.place(relx=0.5, rely=0.70, anchor=S)
@@ -224,7 +230,28 @@ class Profile(Frame):
         lb_target_weight.place(relx=0.8, rely=0.65, anchor=S)
         en_target_weight.place(relx=0.8, rely=0.70, anchor=S)
 
+        btn_bmi_info.place(relx=0.25, rely=0.65, anchor=S)
+
         toolbar(self, controller)
+
+
+def bmi_info():
+    pop_up = Toplevel()
+    pop_up.geometry("200x140")
+    pop_up.title("data")
+    btn_button = Button(pop_up, text="close", command=lambda: pop_up.destroy())
+
+    lb_info_title = Label(pop_up, text="BMI Categories:")
+    lb_info_Un = Label(pop_up, text="Underweight = <18.5")
+    lb_info_No = Label(pop_up, text="Normal weight = 18.5–24.9")
+    lb_info_Ov = Label(pop_up, text="Overweight = 25–29.9")
+    lb_info_Ob = Label(pop_up, text="Obesity = BMI of 30 or greater")
+    lb_info_title.pack()
+    lb_info_Un.pack()
+    lb_info_No.pack()
+    lb_info_Ov.pack()
+    lb_info_Ob.pack()
+    btn_button.pack()
 
 
 class activity:
@@ -232,9 +259,9 @@ class activity:
     def day(index):
         CurrentDay = datetime.now().date() + timedelta(days=index)
 
-        return "SELECT SUM(Exercises.CaloriesBurntPerRep * SessionDetails.Reps * SessionDetails.Sets) AS TotalCalPerSession, Sessions.Duration " \
-               "FROM Sessions INNER JOIN SessionDetails ON Sessions.SessionID = SessionDetails.SessionID " \
-               "INNER JOIN Exercises ON SessionDetails.ExerciseID = Exercises.ExerciseID WHERE StartDate = " + "'" + str(
+        return '''SELECT SUM(Exercises.CaloriesBurntPerRep * SessionDetails.Reps * SessionDetails.Sets) AS TotalCalPerSession, Sessions.Duration 
+                FROM Sessions INNER JOIN SessionDetails ON Sessions.SessionID = SessionDetails.SessionID 
+                INNER JOIN Exercises ON SessionDetails.ExerciseID = Exercises.ExerciseID WHERE StartDate = ''' + "'" + str(
             CurrentDay).replace('-', '/') + "'"
 
     @staticmethod
@@ -244,9 +271,9 @@ class activity:
         date_start_of_week = CurrentDay - timedelta(days=CurrentDay.weekday())
         date_end_of_week = date_start_of_week + timedelta(days=6)
 
-        return "SELECT SUM(Exercises.CaloriesBurntPerRep * SessionDetails.Reps * SessionDetails.Sets) AS TotalCalPerSession, SUM(Sessions.Duration) " \
-               "FROM Sessions INNER JOIN SessionDetails ON Sessions.SessionID = SessionDetails.SessionID " \
-               "INNER JOIN Exercises ON SessionDetails.ExerciseID = Exercises.ExerciseID WHERE StartDate BETWEEN " + "'" + str(
+        return '''SELECT SUM(Exercises.CaloriesBurntPerRep * SessionDetails.Reps * SessionDetails.Sets) AS TotalCalPerSession, SUM(Sessions.Duration) 
+                FROM Sessions INNER JOIN SessionDetails ON Sessions.SessionID = SessionDetails.SessionID 
+                INNER JOIN Exercises ON SessionDetails.ExerciseID = Exercises.ExerciseID WHERE StartDate BETWEEN ''' + "'" + str(
             date_start_of_week).replace('-', '/') + "' AND " + "'" + str(date_end_of_week).replace('-', '/') + "'"
 
     @staticmethod
@@ -258,9 +285,9 @@ class activity:
         date_end_of_month = next_month - timedelta(days=next_month.day)
         date_start_of_month = date_end_of_month.replace(day=1)
 
-        return "SELECT SUM(Exercises.CaloriesBurntPerRep * SessionDetails.Reps * SessionDetails.Sets) AS TotalCalPerSession, SUM(Sessions.Duration) " \
-               "FROM Sessions INNER JOIN SessionDetails ON Sessions.SessionID = SessionDetails.SessionID " \
-               "INNER JOIN Exercises ON SessionDetails.ExerciseID = Exercises.ExerciseID WHERE StartDate BETWEEN " + "'" + str(
+        return '''SELECT SUM(Exercises.CaloriesBurntPerRep * SessionDetails.Reps * SessionDetails.Sets) AS TotalCalPerSession, SUM(Sessions.Duration) 
+                FROM Sessions INNER JOIN SessionDetails ON Sessions.SessionID = SessionDetails.SessionID 
+                INNER JOIN Exercises ON SessionDetails.ExerciseID = Exercises.ExerciseID WHERE StartDate BETWEEN ''' + "'" + str(
             date_start_of_month).replace('-', '/') + "' AND " + "'" + str(date_end_of_month).replace('-', '/') + "'"
 
 
@@ -269,9 +296,6 @@ class DailyActivity_Day(Frame):
         Frame.__init__(self, parent)
         self.controller = controller
         self.configure(bg="#B3B3B3")
-
-        conn = sqlite3.connect('library.db')
-        c = conn.cursor()
 
         var_calories_burnt = IntVar()
         var_time_spent = IntVar()
@@ -341,9 +365,6 @@ class DailyActivity_Week(Frame):
         self.controller = controller
         self.configure(bg="#B3B3B3")
 
-        conn = sqlite3.connect('library.db')
-        c = conn.cursor()
-
         var_calories_burnt = IntVar()
         var_time_spent = IntVar()
         var_show_date = StringVar()
@@ -351,13 +372,13 @@ class DailyActivity_Week(Frame):
 
         def left_nav():
             var_index.set(var_index.get() - 1)
-            loaddata()
+            update_entries()
 
         def right_nav():
             var_index.set(var_index.get() + 1)
-            loaddata()
+            update_entries()
 
-        def loaddata():
+        def update_entries():
             CurrentDay = datetime.now().date() + timedelta(weeks=var_index.get())
 
             date_start_of_week = CurrentDay - timedelta(days=CurrentDay.weekday())
@@ -417,9 +438,6 @@ class DailyActivity_Month(Frame):
         self.controller = controller
         self.configure(bg="#B3B3B3")
 
-        conn = sqlite3.connect('library.db')
-        c = conn.cursor()
-
         var_calories_burnt = IntVar()
         var_time_spent = IntVar()
         var_show_date = StringVar()
@@ -427,13 +445,13 @@ class DailyActivity_Month(Frame):
 
         def left_nav():
             var_index.set(var_index.get() - 1)
-            loaddata()
+            update_entries()
 
         def right_nav():
             var_index.set(var_index.get() + 1)
-            loaddata()
+            update_entries()
 
-        def loaddata():
+        def update_entries():
             CurrentDay = datetime.now().date() + timedelta(weeks=var_index.get() * 5)
 
             next_month = CurrentDay.replace(day=28) + timedelta(days=4)
@@ -562,14 +580,12 @@ class AddRoutine(Frame):
         date_until = 2  # multiple of 7 of days
 
         def add():
-            conn = sqlite3.connect('library.db')
-            c = conn.cursor()
 
-            if (Workout_Monday.get() == 1 and Workout_Tuesday.get() == 1 and Workout_Wednesday.get() == 1 \
-                and Workout_Thursday.get() == 1 and Workout_Friday.get() == 1 and Workout_Saturday.get() == 1 \
+            if (Workout_Monday.get() == 1 and Workout_Tuesday.get() == 1 and Workout_Wednesday.get() == 1
+                and Workout_Thursday.get() == 1 and Workout_Friday.get() == 1 and Workout_Saturday.get() == 1
                 and Workout_Sunday.get() == 1) or (
-                    Workout_Monday.get() == 0 and Workout_Tuesday.get() == 0 and Workout_Wednesday.get() == 0 \
-                    and Workout_Thursday.get() == 0 and Workout_Friday.get() == 0 and Workout_Saturday.get() == 0 \
+                    Workout_Monday.get() == 0 and Workout_Tuesday.get() == 0 and Workout_Wednesday.get() == 0
+                    and Workout_Thursday.get() == 0 and Workout_Friday.get() == 0 and Workout_Saturday.get() == 0
                     and Workout_Sunday.get() == 0):
                 print("fix ur ticks")
             else:
@@ -666,7 +682,7 @@ class AddRoutine(Frame):
         toolbar(self, controller)
 
 
-class AddRoutineNextStep(Frame):
+class Routine_edit_days(Frame):
     def __init__(self, parent, controller):
         Frame.__init__(self, parent)
         self.controller = controller
@@ -679,9 +695,6 @@ class AddWorkout(Frame):
         self.controller = controller
         self.configure(bg="#B3B3B3")
 
-        conn = sqlite3.connect('library.db')
-        c = conn.cursor()
-
         def insert():
             IsPlanned = str(var_is_Planned.get() == 1)
 
@@ -689,9 +702,8 @@ class AddWorkout(Frame):
             last_SessionID = c.fetchone()[0]
 
             c.execute("INSERT INTO Sessions VALUES (?, ?, ?, ?, ?, ?, ?)",
-                      (
-                          last_SessionID + 1, 1, var_date_start.get(), var_time_start.get(), var_session_duration.get(),
-                          var_session_place.get(), IsPlanned))
+                      (last_SessionID + 1, 1, var_date_start.get(), var_time_start.get(), var_session_duration.get(),
+                       var_session_place.get(), IsPlanned))
 
             for i in router_tree_view.get_children():
                 c.execute('SELECT ExerciseID FROM Exercises WHERE ExerciseName = ?',
@@ -700,6 +712,7 @@ class AddWorkout(Frame):
 
                 c.execute("SELECT SessionDetailsID FROM SessionDetails ORDER BY SessionDetailsID DESC LIMIT 1")
                 last_SessionDetailsID = c.fetchone()[0]
+
                 c.execute("INSERT INTO SessionDetails VALUES (?, ?, ?, ?, ?)",
                           (last_SessionDetailsID + 1, last_SessionID + 1, ex_id, var_exercise_sets.get(),
                            var_exercise_reps.get()))
@@ -837,16 +850,16 @@ def new_window(rows):
     col = ['test1', 'test2', 'test3', 'test4', 'test5', 'test6', 'test7', 'test8', 'test9', 'test10']
     router_tree_view = Treeview(pop_up, columns=col, show="headings")
 
-    router_tree_view.heading('#1', text='SessionID')
-    router_tree_view.heading('#2', text='StartDate')
-    router_tree_view.heading('#3', text='StartTime')
+    router_tree_view.heading('#1', text='Session ID')
+    router_tree_view.heading('#2', text='Start Date')
+    router_tree_view.heading('#3', text='Start Time')
     router_tree_view.heading('#4', text='Duration')
     router_tree_view.heading('#5', text='Sets')
     router_tree_view.heading('#6', text='Reps')
     router_tree_view.heading('#7', text='Place')
-    router_tree_view.heading('#8', text='IsPlanned')
-    router_tree_view.heading('#9', text='ExerciseName')
-    router_tree_view.heading('#10', text='Daytype')
+    router_tree_view.heading('#8', text='Is Planned')
+    router_tree_view.heading('#9', text='Exercise Name')
+    router_tree_view.heading('#10', text='Day type')
 
     # Sessions.SessionID, Sessions.StartTime, Sessions.EndTime, SessionDetails.Sets, SessionDetails.Reps, SessionDetails.Sets, SessionDetails.Place, SessionDetails.IsPlanned, Exercises.ExerciseName
 
@@ -863,9 +876,6 @@ def new_window(rows):
 
     router_tree_view.place(relx=0.5, rely=0.05, anchor=N)
 
-    conn = sqlite3.connect('library.db')
-    c = conn.cursor()
-
     for i in router_tree_view.get_children():
         router_tree_view.delete(i)
 
@@ -874,46 +884,44 @@ def new_window(rows):
         router_tree_view.insert('', 'end', values=rows[i])
 
 
-def populatelists(ts, ds, du, et, p, dt, pl):
-    if pl == 1:
-        true_pl = "True"
+def populate_lists(time_start, date_start, duration, exercise_type, place, day_type, is_planned):
+    if is_planned == 1:
+        is_planned_word = "True"
     else:
-        true_pl = "False"
+        is_planned_word = "False"
 
-    query = "SELECT Sessions.SessionID, Sessions.StartDate, Sessions.StartTime, Sessions.Duration, SessionDetails.Sets, " \
-            "SessionDetails.Reps, Sessions.Place, Sessions.IsPlanned, Exercises.ExerciseName, Exercises.Type " \
-            "FROM Sessions INNER JOIN SessionDetails ON Sessions.SessionID = SessionDetails.SessionID " \
-            "INNER JOIN Exercises ON SessionDetails.ExerciseID = Exercises.ExerciseID WHERE IsPlanned = " + "'" + true_pl + "'"
+    query = '''SELECT Sessions.SessionID, Sessions.StartDate, Sessions.StartTime, Sessions.Duration, SessionDetails.Sets, 
+            SessionDetails.Reps, Sessions.Place, Sessions.IsPlanned, Exercises.ExerciseName, Exercises.Type 
+            FROM Sessions INNER JOIN SessionDetails ON Sessions.SessionID = SessionDetails.SessionID 
+            INNER JOIN Exercises ON SessionDetails.ExerciseID = Exercises.ExerciseID WHERE IsPlanned = ''' + "'" + is_planned_word + "'"
 
     # ---------------------------------------------------
 
-    if (ts != "hh:mm:ss" and ts != "NULL"):
-        query = query + " AND StartTime = " + "'" + ts + "'"
+    if time_start != "hh:mm:ss" and time_start != "NULL":
+        query = query + " AND StartTime = " + "'" + time_start + "'"
 
-    if (ts != "hh:mm:ss" and ts != "NULL"):
-        query = query + " AND EndTime = " + "'" + du + "'"
+    if time_start != "hh:mm:ss" and time_start != "NULL":
+        query = query + " AND EndTime = " + "'" + duration + "'"
 
     # ----------------------------------------------------
 
-    if (ds != "yyyy/mm/dd" and ds != "NULL"):
-        query = query + " AND StartDate = " + "'" + ds + "'"
+    if date_start != "yyyy/mm/dd" and date_start != "NULL":
+        query = query + " AND StartDate = " + "'" + date_start + "'"
 
     # if (du != "yyyy-mm-dd" and du != "NULL"):
     # query = query + " AND EndDate = " + "'" + du + "'"
 
     # ----------------------------------------------------
 
-    if (et != "Exercise Type" and et != "NULL"):
-        query = query + " AND ExerciseName = " + "'" + et + "'"
+    if exercise_type != "Exercise Type" and exercise_type != "NULL":
+        query = query + " AND ExerciseName = " + "'" + exercise_type + "'"
 
-    if (p != "Place" and p != "NULL"):
-        query = query + " AND Place = " + "'" + p + "'"
+    if place != "Place" and place != "NULL":
+        query = query + " AND Place = " + "'" + place + "'"
 
-    if (dt != "Day Type" and dt != "NULL"):
-        query = query + " AND Type = " + "'" + dt + "'"
+    if day_type != "Day Type" and day_type != "NULL":
+        query = query + " AND Type = " + "'" + day_type + "'"
 
-    conn = sqlite3.connect('library.db')
-    c = conn.cursor()
     c.execute(query)
     rows = c.fetchall()
     new_window(rows)
@@ -947,9 +955,6 @@ class CalenderSearch(Frame):
         var_place.set("Place")
         var_is_Planned.set(1)
 
-        conn = sqlite3.connect('library.db')
-        c = conn.cursor()
-
         Types = ["NULL"]
         for row in c.execute('SELECT * FROM Exercises'):
             if row[1] not in Types:
@@ -966,9 +971,9 @@ class CalenderSearch(Frame):
                 Days.append(row[2])
 
         btn_search = Button(self, text="search",
-                            command=lambda: populatelists(var_time_start.get(), var_date_start.get(),
-                                                          var_duration.get(), var_exercise_type.get(), var_place.get(),
-                                                          var_day_type.get(), var_is_Planned.get()))
+                            command=lambda: populate_lists(var_time_start.get(), var_date_start.get(),
+                                                           var_duration.get(), var_exercise_type.get(), var_place.get(),
+                                                           var_day_type.get(), var_is_Planned.get()))
         btn_search.place(relx=0.5, rely=0.7, anchor=N)
 
         lb_dateStart = Label(self, text="StartDate")
@@ -985,8 +990,7 @@ class CalenderSearch(Frame):
 
         lb_duration = Label(self, text="Duration")
         en_duration = Entry(self, textvariable=var_duration, bd=5)
-        # dateEnd.grid(row=2, column=3)
-        # EdateEnd.grid(row=2, column=4)
+
         lb_duration.place(relx=0.35, rely=0.14, anchor=N)
         en_duration.place(relx=0.5, rely=0.14, anchor=N)
 
@@ -1018,8 +1022,6 @@ class Settings(Frame):
         self.controller = controller
         self.configure(bg="#B3B3B3")
 
-        conn = sqlite3.connect('library.db')
-        c = conn.cursor()
         c.execute("SELECT Reminders FROM User")
         data = c.fetchone()[0]
 
@@ -1036,7 +1038,7 @@ class Settings(Frame):
         cb_remind_user = Checkbutton(self, text="Reminders", variable=var_remind_user, command=update_notifs)
         cb_remind_user.place(relx=0.5, rely=0.35, anchor=N)
 
-        btn_add_exercises = Button(self, text="Add Exercises", command=lambda: controller.show_frame(AddExercise))
+        btn_add_exercises = Button(self, text="Add Exercises", command=lambda: controller.show_frame(ExerciseListEdit))
         btn_add_exercises.place(relx=0.5, rely=0.25, anchor=N)
 
         btn_add_exercises = Button(self, text="Edit Profile", command=lambda: controller.show_frame(UserScreenEdit))
@@ -1051,20 +1053,26 @@ class ReminderPopUp(Frame):
         self.controller = controller
         self.configure(bg="#B3B3B3")
 
-        btn_close = Button(self, text="I've completed it already", command=lambda: controller.show_frame(Profile),
-                           bg="gray70",
-                           bd=3, pady=5, font=("Helvetica", Fsize), width=Bwidth)
-        btn_close.grid(row=3, column=2)
+        page_title = Label(self, text='Workout Reminder', font=("Verdana", 15))
+        page_title.place(relx=0.5, rely=0.4, anchor=N)
 
-        btn_close = Button(self, text="I'm Busy, reschedule", command=lambda: controller.show_frame(Profile),
-                           bg="gray70",
-                           bd=3, pady=5, font=("Helvetica", Fsize), width=Bwidth)
-        btn_close.grid(row=3, column=2)
+        page_title = Label(self, text='Your schedule says you should currently be in a workout session', font=("Verdana", 10))
+        page_title.place(relx=0.5, rely=0.5, anchor=N)
 
-        btn_close = Button(self, text="I'm going to complete it", command=lambda: controller.show_frame(Profile),
+        btn_close = Button(self, text="I'm busy", command=lambda: controller.show_frame(Profile),
                            bg="gray70",
                            bd=3, pady=5, font=("Helvetica", Fsize), width=Bwidth)
-        btn_close.grid(row=3, column=2)
+        btn_close.place(relx=0.25, rely=0.6, anchor=N)
+
+        btn_close = Button(self, text="I've completed it", command=lambda: controller.show_frame(Profile),
+                           bg="gray70",
+                           bd=3, pady=5, font=("Helvetica", Fsize), width=Bwidth)
+        btn_close.place(relx=0.5, rely=0.6, anchor=N)
+
+        btn_close = Button(self, text="I will complete it", command=lambda: controller.show_frame(Profile),
+                           bg="gray70",
+                           bd=3, pady=5, font=("Helvetica", Fsize), width=Bwidth)
+        btn_close.place(relx=0.75, rely=0.6, anchor=N)
 
 
 class WorkoutCalendar(Frame):
@@ -1093,16 +1101,15 @@ class WorkoutCalendar(Frame):
         load_btn.place(relx=0.1, rely=0, anchor=NW)
         search_btn.place(relx=0.9, rely=0, anchor=NE)
 
+
         toolbar(self, controller)
 
 
 class SessionScreenInfo(Frame):
-    def reset_scrollregion(self, event):
+    def reset_scroll_region(self, event):
         self.my_canvas.configure(scrollregion=self.my_canvas.bbox("all"))
 
-    def loaddata(self, selected_date):
-        conn = sqlite3.connect('library.db')
-        c = conn.cursor()
+    def load_data(self, selected_date):
         st_array = selected_date.split("/")
         if len(st_array[0]) == 1:
             st_array[0] = "0" + st_array[0]
@@ -1127,7 +1134,7 @@ class SessionScreenInfo(Frame):
     def on_show_frame(self, event):
         calendar_page = self.controller.find_page(WorkoutCalendar)
         selected_date = calendar_page.cal_date.get()
-        self.data = self.loaddata(selected_date)
+        self.data = self.load_data(selected_date)
 
         self.lb_duration.place_forget()
         self.en_duration_num.place_forget()
@@ -1141,10 +1148,10 @@ class SessionScreenInfo(Frame):
         self.my_scrollbar.place_forget()
         self.edit_mode.place_forget()
 
-        if len(self.btns_exercises) > 1:
-            for i in range(len(self.btns_exercises)):
-                self.btns_exercises[i].grid_forget()
-            self.btns_exercises = []
+        if len(self.exercise_list) > 1:
+            for i in range(len(self.exercise_list)):
+                self.exercise_list[i].grid_forget()
+            self.exercise_list = []
 
         if len(self.data) > 1:
             self.lb_duration.place(relx=0.2, rely=0.35, anchor=N)
@@ -1166,24 +1173,24 @@ class SessionScreenInfo(Frame):
             self.my_scrollbar.bind("<Configure>",
                                    lambda e: self.my_canvas.configure(scrollregion=self.my_canvas.bbox("all")))
 
-            max_btns_onscreen = 5
-            if len(self.data) - 1 > max_btns_onscreen:
+            max_buttons_onscreen = 5
+            if len(self.data) - 1 > max_buttons_onscreen:
                 self.my_scrollbar.place(relx=0.5, rely=0.85, width=500, height=20, anchor=N)
             for i in range(len(self.data) - 1):
-                self.btns_exercises.append(
-                    Button(self.second_frame, text=self.data[i + 1][7], command=lambda i=i: sendtheone(i + 1),
+                self.exercise_list.append(
+                    Button(self.second_frame, text=self.data[i + 1][7], command=lambda i=i: send_exercise_id(i + 1),
                            bg="gray70",
                            bd=3, pady=5, font=("Helvetica", Fsize), wrap=80, width=8, height=3))
-                self.btns_exercises[i].grid(row=0, column=i, padx=5)
+                self.exercise_list[i].grid(row=0, column=i, padx=5)
         else:
             self.btn_add_data.place(relx=0.5, rely=0.5, anchor=N)
 
-        def sendtheone(id):
-            self.var_ex_name.set(self.data[id][7])
-            self.var_single_sets.set(self.data[id][3])
-            self.var_single_reps.set(self.data[id][4])
-            self.var_single_type.set(self.data[id][8])
-            self.var_calories_burnt_per.set(round(self.data[id][9]))
+        def send_exercise_id(session_details_id):
+            self.var_ex_name.set(self.data[session_details_id][7])
+            self.var_single_sets.set(self.data[session_details_id][3])
+            self.var_single_reps.set(self.data[session_details_id][4])
+            self.var_single_type.set(self.data[session_details_id][8])
+            self.var_calories_burnt_per.set(round(self.data[session_details_id][9]))
             self.controller.show_frame(SpecificExerciseDetails)
 
     def __init__(self, parent, controller):
@@ -1203,7 +1210,7 @@ class SessionScreenInfo(Frame):
 
         self.my_canvas.create_window((0, 0), window=self.second_frame, anchor=NW)
 
-        self.second_frame.bind("<Configure>", self.reset_scrollregion)
+        self.second_frame.bind("<Configure>", self.reset_scroll_region)
 
         self.my_scrollbar = Scrollbar(self, orient=HORIZONTAL, command=self.my_canvas.xview)
 
@@ -1217,7 +1224,8 @@ class SessionScreenInfo(Frame):
 
         self.var_place = StringVar()
 
-        self.btns_exercises = []
+        self.exercise_list = []
+        self.data = []
 
         # send to other frame
         self.var_ex_name = StringVar()
@@ -1246,9 +1254,9 @@ class SessionScreenInfo(Frame):
         self.lb_exercise_list = Label(self, text="Exercises", font=("Helvetica", 15))
 
         self.edit_mode = Button(self, text='Edit',
-                           command=lambda: self.controller.show_frame(SessionScreenEdit),
-                           bg="gray70",
-                           bd=3, pady=3, font=("Helvetica", 9), width=5)
+                                command=lambda: self.controller.show_frame(SessionScreenEdit),
+                                bg="gray70",
+                                bd=3, pady=3, font=("Helvetica", 9), width=5)
 
         self.btn_add_data = Button(self, text='Add Session Info',
                                    command=lambda: controller.show_frame(AddWorkout), bg="gray70",
@@ -1357,9 +1365,6 @@ class SessionScreenEdit(Frame):
         self.configure(bg="#B3B3B3")
         self.bind("<<ShowFrame>>", self.on_show_frame)  # when frame is loaded
 
-        conn = sqlite3.connect('library.db')
-        c = conn.cursor()
-
         def add_exercise():
             double = False
             for i in self.router_tree_view.get_children():
@@ -1419,6 +1424,7 @@ class SessionScreenEdit(Frame):
         self.var_exercise_name.set("Exercise Name")
         self.var_exercise_sets = IntVar()
         self.var_exercise_reps = IntVar()
+        self.data = []
 
         lb_timeStart = Label(self, text="Start Date")
         en_timeStart = Entry(self, textvariable=self.var_date_start, bd=5)
@@ -1498,8 +1504,6 @@ class AddExercise(Frame):
         for i in self.router_tree_view.get_children():
             self.router_tree_view.delete(i)
 
-        conn = sqlite3.connect('library.db')
-        c = conn.cursor()
         c.execute("SELECT * FROM Exercises")
         data = c.fetchall()
         print(data)
@@ -1514,9 +1518,6 @@ class AddExercise(Frame):
         self.controller = controller
         self.configure(bg="#B3B3B3")
         self.bind("<<ShowFrame>>", self.on_show_frame)  # when frame is loaded
-
-        conn = sqlite3.connect('library.db')
-        c = conn.cursor()
 
         var_exercise_name = StringVar()
         var_day_type = StringVar()
@@ -1609,15 +1610,13 @@ class UserScreenEdit(Frame):
         self.var_target_weight.set(user_data[0][5])
         self.var_height.set(user_data[0][6])
         self.var_gender.set(user_data[0][7])
+        print(user_data)
 
     def __init__(self, parent, controller):
         Frame.__init__(self, parent)
         self.controller = controller
         self.configure(bg="#B3B3B3")
         self.bind("<<ShowFrame>>", self.on_show_frame)  # when frame is loaded
-
-        conn = sqlite3.connect('library.db')
-        c = conn.cursor()
 
         self.var_last_name = StringVar()
         self.var_first_name = StringVar()
@@ -1669,6 +1668,75 @@ class UserScreenEdit(Frame):
                  self.var_target_weight.get(), self.var_height.get(), self.var_gender.get()))
             conn.commit()
             controller.show_frame(Profile)
+
+        btn_create_routine = Button(self, text="Save", bg="gray70", command=save_changes,
+                                    bd=3, pady=2, font=("Helvetica", Fsize), width=12)
+        btn_create_routine.place(relx=0.7, rely=0.82, anchor=N)
+
+        btn_create_routine = Button(self, text="Cancel", bg="gray70",
+                                    command=lambda: controller.show_frame(Settings),
+                                    bd=3, pady=2, font=("Helvetica", Fsize), width=12)
+        btn_create_routine.place(relx=0.3, rely=0.82, anchor=N)
+
+
+class ExerciseListEdit(Frame):
+    def on_show_frame(self, event):
+        print()
+
+    def __init__(self, parent, controller):
+        Frame.__init__(self, parent)
+        self.controller = controller
+        self.configure(bg="#B3B3B3")
+        self.bind("<<ShowFrame>>", self.on_show_frame)  # when frame is loaded
+
+        var_exercise_name = StringVar()
+        var_exercise_type = StringVar()
+        var_exercise_cals = StringVar()
+
+        lb_exercise_name = Label(self, text="Exercise Name")
+        en_exercise_name = Entry(self, textvariable=var_exercise_name)
+        lb_exercise_name.place(relx=0.13, rely=0.15, anchor=E)
+        en_exercise_name.place(relx=0.35, rely=0.15, anchor=E)
+
+        lb_exercise_type = Label(self, text="Exercise type")
+        en_exercise_type = Entry(self, textvariable=var_exercise_type)
+        lb_exercise_type.place(relx=0.43, rely=0.15, anchor=E)
+        en_exercise_type.place(relx=0.65, rely=0.15, anchor=E)
+
+        lb_exercise_cals = Label(self, text="Calories burnt per 12")
+        en_exercise_cals = Entry(self, textvariable=var_exercise_cals)
+        lb_exercise_cals.place(relx=0.73, rely=0.15, anchor=E)
+        en_exercise_cals.place(relx=0.95, rely=0.15, anchor=E)
+
+        def add_exercise():
+            c.execute("SELECT ExerciseID FROM Exercises ORDER BY ExerciseID DESC LIMIT 1")
+            last_ExercisesID = c.fetchone()[0]
+
+            calories_per = (var_exercise_cals.get() / 12)
+            row = [last_ExercisesID + 1, var_exercise_name.get(), var_exercise_type.get(), calories_per]
+            self.router_tree_view.insert('', 'end', values=row)
+
+        def save_changes():
+            c.execute(
+                "INSERT INTO SessionDetails VALUES (?, ?, ?, ?)",
+                (1, var_exercise_name.get(), var_exercise_type.get(), var_exercise_cals.get()))# get next id
+            conn.commit()
+            controller.show_frame(Profile)
+
+        col = ['test1', 'test2', 'test3', 'test4']
+        self.router_tree_view = Treeview(self, columns=col, show="headings")
+
+        self.router_tree_view.heading('#1', text='ID')
+        self.router_tree_view.heading('#2', text='Exercise Name')
+        self.router_tree_view.heading('#3', text='Day Type')
+        self.router_tree_view.heading('#4', text='Calories per rep')
+
+        self.router_tree_view.column("#1", width=10)
+        self.router_tree_view.column("#2", width=60)
+        self.router_tree_view.column("#3", width=60)
+        self.router_tree_view.column("#4", width=5)
+
+        self.router_tree_view.place(relx=0.5, rely=0.22, anchor=N, width=500, height=340)
 
         btn_create_routine = Button(self, text="Save", bg="gray70", command=save_changes,
                                     bd=3, pady=2, font=("Helvetica", Fsize), width=12)
